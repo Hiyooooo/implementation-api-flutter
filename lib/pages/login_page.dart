@@ -67,6 +67,14 @@ class LoginPage extends StatelessWidget {
                             },
                           ),
                   ),
+
+                  const SizedBox(height: 16),
+                  AppButton(
+                    text: "Login with google",
+                    onPressed: () async {
+                      await controller.signInWithGoogle();
+                    },
+                  ),
                 ],
               ),
             ),

@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:implementation_api/models/auth_model.dart';
 import 'package:implementation_api/network/api_config.dart';
@@ -12,6 +14,23 @@ class AuthController extends GetxController {
 
   var isLoading = false.obs;
   var isPasswordVisible = false.obs;
+
+  final FirebaseAuth auth = FirebaseAuth.instance;
+  var user = Rx<User?>(null);
+
+  @override
+  void onInit() {
+    super.onInit();
+    user.bindStream(auth.authStateChanges());
+    ever(user, _setInitialScreen);
+  }
+
+  void _setInitialScreen(User? user) {
+    final target = user == null ? AppRouter.loginpage : AppRouter.mainnav;
+    if (Get.currentRoute != target) {
+      Get.offAllNamed(target);
+    }
+  }
 
   void login() async {
     if (username.text.isEmpty || password.text.isEmpty) {
@@ -59,10 +78,10 @@ class AuthController extends GetxController {
           backgroundColor: Colors.redAccent,
         );
       }
-    } catch (error) {
+    } catch (e) {
       Get.snackbar(
         "Exception",
-        error.toString(),
+        e.toString(),
         backgroundColor: Colors.redAccent,
       );
     }
@@ -82,5 +101,33 @@ class AuthController extends GetxController {
         Get.offAllNamed(AppRouter.loginpage);
       },
     );
+  }
+
+  Future<void> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return;
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await auth.signInWithCredential(credential);
+    } catch (e) {
+      Get.snackbar(
+        "Login Failed",
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
+  Future<void> signOut() async {
+    await GoogleSignIn().signOut();
+    await auth.signOut();
   }
 }
